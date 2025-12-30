@@ -1,18 +1,13 @@
-// hubspot.js
-
 import { useState, useEffect } from 'react';
-import {
-    Box,
-    Button,
-    CircularProgress
-} from '@mui/material';
+import { Box } from '@mui/material';
 import axios from 'axios';
+import { IntegrationCard } from '../components/IntegrationCard';
+import { StyledButton } from '../components/StyledButton';
 
 export const HubSpotIntegration = ({ user, org, integrationParams, setIntegrationParams }) => {
     const [isConnected, setIsConnected] = useState(false);
     const [isConnecting, setIsConnecting] = useState(false);
 
-    // Function to open OAuth in a new window
     const handleConnectClick = async () => {
         try {
             setIsConnecting(true);
@@ -24,27 +19,25 @@ export const HubSpotIntegration = ({ user, org, integrationParams, setIntegratio
 
             const newWindow = window.open(authURL, 'HubSpot Authorization', 'width=600, height=600');
 
-            // Polling for the window to close
             const pollTimer = window.setInterval(() => {
-                if (newWindow?.closed !== false) { 
+                if (newWindow?.closed !== false) {
                     window.clearInterval(pollTimer);
                     handleWindowClosed();
                 }
             }, 200);
         } catch (e) {
             setIsConnecting(false);
-            alert(e?.response?.data?.detail);
+            alert(e?.response?.data?.detail || 'Failed to initiate HubSpot authorization');
         }
     }
 
-    // Function to handle logic when the OAuth window closes
     const handleWindowClosed = async () => {
         try {
             const formData = new FormData();
             formData.append('user_id', user);
             formData.append('org_id', org);
             const response = await axios.post(`http://localhost:8000/integrations/hubspot/credentials`, formData);
-            const credentials = response.data; 
+            const credentials = response.data;
             if (credentials) {
                 setIsConnecting(false);
                 setIsConnected(true);
@@ -53,35 +46,35 @@ export const HubSpotIntegration = ({ user, org, integrationParams, setIntegratio
             setIsConnecting(false);
         } catch (e) {
             setIsConnecting(false);
-            alert(e?.response?.data?.detail);
+            alert(e?.response?.data?.detail || 'Failed to retrieve HubSpot credentials');
         }
     }
 
     useEffect(() => {
         setIsConnected(integrationParams?.credentials ? true : false)
-    }, []);
+    }, [integrationParams]);
 
     return (
-        <>
-        <Box sx={{mt: 2}}>
-            Parameters
+        <IntegrationCard
+            title="HubSpot"
+            description="Connect your HubSpot account to sync contacts, companies, and deals"
+            isConnected={isConnected}
+        >
             <Box display='flex' alignItems='center' justifyContent='center' sx={{mt: 2}}>
-                <Button 
-                    variant='contained' 
-                    onClick={isConnected ? () => {} :handleConnectClick}
+                <StyledButton
+                    variant='contained'
+                    onClick={isConnected ? () => {} : handleConnectClick}
                     color={isConnected ? 'success' : 'primary'}
-                    disabled={isConnecting}
+                    loading={isConnecting}
                     style={{
                         pointerEvents: isConnected ? 'none' : 'auto',
                         cursor: isConnected ? 'default' : 'pointer',
-                        opacity: isConnected ? 1 : undefined
                     }}
                 >
-                    {isConnected ? 'HubSpot Connected' : isConnecting ? <CircularProgress size={20} /> : 'Connect to HubSpot'}
-                </Button>
+                    {isConnected ? 'Connected' : 'Connect to HubSpot'}
+                </StyledButton>
             </Box>
-        </Box>
-      </>
+        </IntegrationCard>
     );
 }
 
